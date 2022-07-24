@@ -8,7 +8,6 @@ import com.project.weatherapi.WeatherDAO;
 import com.project.weatherapi.WeatherVO;
 import lombok.Getter;
 import lombok.Setter;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -29,33 +28,23 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-/*
-    @RestController : 기본으로 하위에 있는 메소드들은 모두 @ResponseBody를 가지게 된다.
-    @RequestBody : 클라이언트가 요청한 XML/JSON을 자바 객체로 변환해서 전달 받을 수 있다.
-    @ResponseBody : 자바 객체를 XML/JSON으로 변환해서 응답 객체의 Body에 실어 전송할 수 있다.
-            클라이언트에게 JSON 객체를 받아야 할 경우는 @RequestBody, 자바 객체를 클라이언트에게 JSON으로 전달해야할 경우에는 @ResponseBody 어노테이션을 붙여주면 된다.
-    @ResponseBody를 사용한 경우 View가 아닌 자바 객체를 리턴해주면 된다.
-*/
 
 @RestController
-@RequestMapping("/weather")
-@ConfigurationProperties(prefix="greeting")
+@RequestMapping("/api")
 public class WeatherApiController {
-    @Autowired
-    WeatherDAO wDAO;
 
-    @Getter
-    @Setter
-    String hello;
+    @Autowired
+    WeatherDAO weatherDao;
 
     String returnString;
 
-    @GetMapping("/getall")
+    // 현재까지 호출한 모든 WeatherVO 정보를 출력
+    @GetMapping("/weather/all")
     public List<WeatherVO> getAll() {
-        return wDAO.getDatas();
+        return weatherDao.getDatas();
     }
 
-    @GetMapping("/get")
+    @GetMapping("/weather")
     public String getWeather(@RequestParam(value = "name", defaultValue = "Seoul") String cityname,
                              @RequestParam(value = "APIkey", defaultValue = "") String apikey) throws JsonProcessingException {
 
@@ -81,10 +70,10 @@ public class WeatherApiController {
             result.put("header", resultMap.getHeaders()); //헤더 정보 확인
             result.put("body", resultMap.getBody()); //실제 데이터 정보 확인
 
-            //데이터를 제대로 전달 받았는지 확인 string형태로 파싱해줌
+            //데이터를 제대로 전달 받았는지 확인 string 형태 파싱
             ObjectMapper mapper = new ObjectMapper();
 
-            //데이터를 WeatherVO 형태로 저장해 weatherDAO에 넣어줌
+            //데이터를 WeatherVO 형태로 저장해 weatherDAO 대입
             w.setCityname(cityname);
             w.getCoord().setLon(
                     Double.valueOf(((LinkedHashMap)resultMap.getBody().get("coord")).get("lon").toString())
@@ -110,17 +99,20 @@ public class WeatherApiController {
             w.getWeather().setDescription(
                     ((LinkedHashMap)((ArrayList)resultMap.getBody().get("weather")).get(0)).get("description").toString()
             );
-            wDAO.addData(w);
+            weatherDao.addData(w);
+            // 출력 부분
             returnString = w.getCityname() + "의 현재 날씨는 " + w.getWeather().getDescription() + " 이고, 기온은 "
-                    + Double.toString(w.getTemp().getTemp_cur()).substring(0,4) +"'C 이며, 습도는 " + w.getTemp().getHumidity() + "% 입니다. 좋은 하루 보내세요!";
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
+                    + Double.toString(w.getTemp().getTemp_cur()).substring(0,4) +"'C 이며, 습도는 " + w.getTemp().getHumidity() + "% 입니다.";
+        }
+        catch (HttpClientErrorException | HttpServerErrorException e) {
             result.put("statusCode", e.getRawStatusCode());
             result.put("body"  , e.getStatusText());
-            System.out.println("dfdfdfdf");
+            System.out.println("예외 발생");
             System.out.println(e.toString());
-        } catch (Exception e) {
-            result.put("statusCode", "999");
-            result.put("body"  , "excpetion오류");
+        }
+        catch (Exception e) {
+            result.put("statusCode", "999"); //상태 코드 확인
+            result.put("body"  , "excpetion 오류");
             System.out.println(e.toString());
         }
         return returnString;
