@@ -29,11 +29,11 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 
-@RestController
-@RequestMapping("/api")
+@RestController // Json 형태로 객체 데이터를 반환하기위해
+@RequestMapping("/api") // 들어온 요청을 특정 메서드와 매핑하기 위해
 public class WeatherApiController {
 
-    @Autowired
+    @Autowired //필요한 의존 객체의 “타입"에 해당하는 빈을 찾아 주입하기위해 했으나 생략해도 무관할듯 보입니다.
     WeatherDAO weatherDao;
 
     String returnString;
@@ -48,6 +48,9 @@ public class WeatherApiController {
     public String getWeather(@RequestParam(value = "name", defaultValue = "Seoul") String cityname,
                              @RequestParam(value = "APIkey", defaultValue = "") String apikey) throws JsonProcessingException {
 
+        // HashMap 사용이유
+        // 하나의 key는 하나의 value만 가지고 있기에 적합했고,
+        // list 형태를 사용하지 않고 HashMap을 사용하는 이유 시간대비 효율(시간복잡성)때문입니다.
         HashMap<String, Object> result = new HashMap<String, Object>();
         WeatherVO w = new WeatherVO();
 
@@ -102,7 +105,10 @@ public class WeatherApiController {
             weatherDao.addData(w);
             // 출력 부분
             returnString = w.getCityname() + "의 현재 날씨는 " + w.getWeather().getDescription() + " 이고, 기온은 "
-                    + Double.toString(w.getTemp().getTemp_cur()).substring(0,4) +"'C 이며, 습도는 " + w.getTemp().getHumidity() + "% 입니다.";
+                    + Double.toString(w.getTemp().getTemp_cur()).substring
+
+
+                    (0,4) +"'C 이며, 습도는 " + w.getTemp().getHumidity() + "% 입니다.";
         }
         catch (HttpClientErrorException | HttpServerErrorException e) {
             result.put("statusCode", e.getRawStatusCode());
